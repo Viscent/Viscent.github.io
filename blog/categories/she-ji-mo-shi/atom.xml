@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Viscent's Blog]]></title>
-  <link href="http://viscent.github.io/atom.xml" rel="self"/>
+  <title><![CDATA[Category: 设计模式 | Viscent's Blog]]></title>
+  <link href="http://viscent.github.io/blog/categories/she-ji-mo-shi/atom.xml" rel="self"/>
   <link href="http://viscent.github.io/"/>
   <updated>2014-11-29T20:56:59+08:00</updated>
   <id>http://viscent.github.io/</id>
