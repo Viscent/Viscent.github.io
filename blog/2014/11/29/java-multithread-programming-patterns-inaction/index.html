@@ -6,7 +6,7 @@
 <html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Viscent&#8217;s Blog</title>
+  <title>Java多线程编程模式实战指南：Active Object模式（上） - Viscent&#8217;s Blog</title>
   <meta name="author" content="Viscent">
 
   
@@ -19,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://viscent.github.io">
+  <link rel="canonical" href="http://viscent.github.io/blog/2014/11/29/java-multithread-programming-patterns-inaction">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Viscent's Blog" type="application/atom+xml">
@@ -61,15 +61,12 @@
 </nav>
   <div id="main">
     <div id="content">
-      <div class="blog-index">
+      <div>
+<article class="hentry" role="article">
   
-  
-  
-    <article>
-      
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/29/java-multithread-programming-patterns-inaction/">Java多线程编程模式实战指南：Active Object模式（上）</a></h1>
+      <h1 class="entry-title">Java多线程编程模式实战指南：Active Object模式（上）</h1>
     
     
       <p class="meta">
@@ -85,7 +82,7 @@
   </header>
 
 
-  <div class="entry-content"><p>本文首次发布在<a href="http://www.infoq.com/cn">infoq中文站</a>上：<a href="http://www.infoq.com/cn/articles/Java-multithreaded-programming-mode-active-object-part1">http://www.infoq.com/cn/articles/Java-multithreaded-programming-mode-active-object-part1</a> 。转载请注明作者： 黄文海 出处：<a href="http://viscent.github.io">http://viscent.github.io</a>。</p>
+<div class="entry-content"><p>本文首次发布在<a href="http://www.infoq.com/cn">infoq中文站</a>上：<a href="http://www.infoq.com/cn/articles/Java-multithreaded-programming-mode-active-object-part1">http://www.infoq.com/cn/articles/Java-multithreaded-programming-mode-active-object-part1</a> 。转载请注明作者： 黄文海 出处：<a href="http://viscent.github.io">http://viscent.github.io</a>。</p>
 
 <h2>Active Object模式简介</h2>
 
@@ -481,18 +478,54 @@ public class AsyncRequestPersistence implements RequestPersistence {
 
 <p>感谢<a href="http://www.infoq.com/cn/author/%E5%BC%A0%E9%BE%99">张龙</a>对本文的审校。</p>
 </div>
-  
-  
 
 
-    </article>
+  <footer>
+    <p class="meta">
+      
   
-  <div class="pagination">
+
+<span class="byline author vcard">Posted by <span class="fn">Viscent</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-11-29T17:53:50+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:53 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/design-pattern/'>design pattern</a>, <a class='category' href='/blog/categories/java-multi-thread-programming/'>java multi-thread programming</a>
+  
+</span>
+
+
+    </p>
     
-    <a href="/blog/archives">Blog Archives</a>
-    
-  </div>
+      <div class="sharing">
+  
+  
+  
 </div>
+
+    
+    <p class="meta">
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
 <aside class="sidebar">
   
     <section>
@@ -517,6 +550,7 @@ public class AsyncRequestPersistence implements RequestPersistence {
   
 </aside>
 
+
     </div>
   </div>
   <footer role="contentinfo"><p>
@@ -531,7 +565,10 @@ public class AsyncRequestPersistence implements RequestPersistence {
       var disqus_shortname = 'viscent.disqus.com';
       
         
-        var disqus_script = 'count.js';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://viscent.github.io/blog/2014/11/29/java-multithread-programming-patterns-inaction/';
+        var disqus_url = 'http://viscent.github.io/blog/2014/11/29/java-multithread-programming-patterns-inaction/';
+        var disqus_script = 'embed.js';
       
     (function () {
       var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
