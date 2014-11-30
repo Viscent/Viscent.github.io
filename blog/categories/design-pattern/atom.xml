@@ -4,7 +4,7 @@
   <title><![CDATA[Category: design pattern | Viscent's Blog]]></title>
   <link href="http://viscent.github.io/blog/categories/design-pattern/atom.xml" rel="self"/>
   <link href="http://viscent.github.io/"/>
-  <updated>2014-11-30T18:00:13+08:00</updated>
+  <updated>2014-11-30T19:48:41+08:00</updated>
   <id>http://viscent.github.io/</id>
   <author>
     <name><![CDATA[Viscent]]></name>
@@ -12,6 +12,357 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[java-multithread-programming-patterns-inaction-part2]]></title>
+    <link href="http://viscent.github.io/blog/2014/11/30/java-multithread-programming-patterns-inaction-part2/"/>
+    <updated>2014-11-30T19:47:50+08:00</updated>
+    <id>http://viscent.github.io/blog/2014/11/30/java-multithread-programming-patterns-inaction-part2</id>
+    <content type="html"><![CDATA[<h2>Active Object模式的评价与实现考量</h2>
+
+<p>Active Object模式通过将方法的调用与执行分离，实现了异步编程。有利于提高并发性，从而提高系统的吞吐率。</p>
+
+<p>Active Object模式还有个好处是它可以将任务（MethodRequest）的提交（调用异步方法）和任务的执行策略（Execution Policy）分离。任务的执行策略被封装在Scheduler的实现类之内，因此它对外是不“可见”的，一旦需要变动也不会影响其它代码，降低了系统的 耦合性。任务的执行策略可以反映以下一些问题：</p>
+
+<ul>
+<li>采用什么顺序去执行任务，如FIFO、LIFO、或者基于任务中包含的信息所定的优先级？</li>
+<li>多少个任务可以并发执行？</li>
+<li>多少个任务可以被排队等待执行？</li>
+<li>如果有任务由于系统过载被拒绝，此时哪个任务该被选中作为牺牲品，应用程序该如何被通知到？</li>
+<li>任务执行前、执行后需要执行哪些操作？</li>
+</ul>
+
+
+<p>这意味着，任务的执行顺序可以和任务的提交顺序不同，可以采用单线程也可以采用多线程去执行任务等等。</p>
+
+<p>当然，好处的背后总是隐藏着代价，Active Object模式实现异步编程也有其代价。该模式的参与者有6个之多，其实现过程也包含了不少中间的处理：MethodRequest对象的生成、 MethodRequest对象的移动（进出缓冲区）、MethodRequest对象的运行调度和线程上下文切换等。这些处理都有其空间和时间的代价。 因此，Active Object模式适合于分解一个比较耗时的任务（如涉及I/O操作的任务）：将任务的发起和执行进行分离，以减少不必要的等待时间。</p>
+
+<p>虽然模式的参与者较多，但正如本文案例的实现代码所展示的，其中大部分的参与者我们可以利用JDK自身提供的类来实现，以节省编码时间。如表1所示。</p>
+
+<p>表 1. 使用JDK现有类实现Active Object的一些参与者</p>
+
+<table border="0" cellpadding="0" cellspacing="0">
+    <tbody>
+        <tr>
+            <td valign="top" width="114">
+            <p><b>参与者名称</b></p>
+            </td>
+            <td valign="top" width="250">
+            <p><b>可以借用的</b><b>JDK</b><b>类</b></p>
+            </td>
+            <td valign="top" width="210">
+            <p><b>备注</b></p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="114">
+            <p>Scheduler</p>
+            </td>
+            <td valign="top" width="250">
+            <p>Java Executor Framework中的java.util.concurrent.ExecutorService接口的相关实现类，如java.util.concurrent.ThreadPoolExecutor。</p>
+            </td>
+            <td valign="top" width="210">
+            <p>ExecutorService接口所定义的submit(Callable&lt;T&gt; task)方法相当于图2中的enqueue方法。</p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="114">
+            <p>ActivationQueue</p>
+            </td>
+            <td valign="top" width="250">
+            <p>java.util.concurrent.LinkedBlockingQueue</p>
+            </td>
+            <td valign="top" width="210">
+            <p>若Scheduler采用java.util.concurrent.ThreadPoolExecutor，则java.util.concurrent.LinkedBlockingQueue实例作为ThreadPoolExecutor构造器的参数。</p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="114">
+            <p>MethodRequest</p>
+            </td>
+            <td valign="top" width="250">
+            <p>java.util.concurrent.Callable接口的匿名实现类。</p>
+            </td>
+            <td valign="top" width="210">
+            <p>Callable接口比起Runnable接口的优势在于它定义的call方法有返回值，便于将该返回值传递给Future实例。</p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="114">
+            <p>Future</p>
+            </td>
+            <td valign="top" width="250">
+            <p>java.util.concurrent.Future</p>
+            </td>
+            <td valign="top" width="210">
+            <p>ExecutorService接口所定义的submit(Callable&lt;T&gt; task)方法的返回值类型就是java.util.concurrent.Future。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+<h3>错误隔离</h3>
+
+<p>错误隔离指一个任务的处理失败不影响其它任务的处理。每个MethodRequest实例可以看作一个任务。那么，Scheduler的实现类在执 行MethodRequest时需要注意错误隔离。选用JDK中现成的类（如ThreadPoolExecutor）来实现Scheduler的一个好处 就是这些类可能已经实现了错误隔离。而如果自己编写代码实现Scheduler，用单个Active Object工作线程逐一执行所有任务，则需要特别注意线程的run方法的异常处理，确保不会因为个别任务执行时遇到一些运行时异常而导致整个线程终止。 如清单6的示例代码所示。</p>
+
+<p>清单 6. 自己动手实现Scheduler的错误隔离示例代码</p>
+
+<pre><code>public class CustomScheduler implements Runnable {
+    private LinkedBlockingQueue&lt;Runnable&gt; activationQueue = 
+        new LinkedBlockingQueue&lt;Runnable&gt;();
+
+    @Override
+    public void run() {
+        dispatch();
+    }
+
+    public &lt;T&gt; Future&lt;T&gt; enqueue(Callable&lt;T&gt; methodRequest) {
+        final FutureTask&lt;T&gt; task = new FutureTask&lt;T&gt;(methodRequest) {
+
+            @Override
+            public void run() {
+                try {
+                   super.run();
+                //捕获所以可能抛出的对象，避免该任务运行失败而导致其所在的线程终止。   
+                } catch (Throwable t) {
+                   this.setException(t);
+                }
+            }
+
+        };
+
+        try {
+            activationQueue.put(task);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return task;
+    }
+
+    public void dispatch() {
+        while (true) {
+            Runnable methodRequest;
+            try {
+                methodRequest = activationQueue.take();
+
+                //防止个别任务执行失败导致线程终止的代码在run方法中
+                methodRequest.run();
+            } catch (InterruptedException e) {
+                // 处理该异常
+            }
+
+        }
+    }
+}
+</code></pre>
+
+<h3>缓冲区监控</h3>
+
+<p>如果ActivationQueue是有界缓冲区，则对缓冲区的当前大小进行监控无论是对于运维还是测试来说都有其意义。从测试的角度来看，监控缓 冲区有助于确定缓冲区容量的建议值（合理值）。清单3所示的代码，即是通过定时任务周期性地调用ThreadPoolExecutor的getQueue 方法对缓冲区的大小进行监控。当然，在监控缓冲区的时候，往往只需要大致的值，因此在监控代码中要避免不必要的锁。</p>
+
+<h2>缓冲区饱和处理策略</h2>
+
+<p>当任务的提交速率大于任务的执行数率时，缓冲区可能逐渐积压到满。这时新提交的任务会被拒绝。无论是自己编写代码还是利用JDK现有类来实现 Scheduler，对于缓冲区满时新任务提交失败，我们需要一个处理策略用于决定此时哪个任务会成为“牺牲品”。若使用 ThreadPoolExecutor来实现Scheduler有个好处是它已经提供了几个缓冲区饱和处理策略的实现代码，应用代码可以直接调用。如清单 3的代码所示，本文案例中我们选择了抛弃最老的任务作为处理策略。 java.util.concurrent.RejectedExecutionHandler接口是ThreadPoolExecutor对缓冲区饱和 处理策略的抽象，JDK中提供的具体实现如表2所示。</p>
+
+<p>表 2. JDK提供的缓冲区饱和处理策略实现类</p>
+
+<table border="0" cellpadding="0" cellspacing="0">
+    <tbody>
+        <tr>
+            <td valign="top" width="235">
+            <p><b>实现类</b></p>
+            </td>
+            <td valign="top" width="330">
+            <p><b>所实现的处理策略</b></p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="235">
+            <p>ThreadPoolExecutor.AbortPolicy</p>
+            </td>
+            <td valign="top" width="330">
+            <p>直接抛出异常。</p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="235">
+            <p>ThreadPoolExecutor.DiscardPolicy</p>
+            </td>
+            <td valign="top" width="330">
+            <p>放弃当前被拒绝的任务（而不抛出任何异常）。</p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="235">
+            <p>ThreadPoolExecutor.DiscardOldestPolicy</p>
+            </td>
+            <td valign="top" width="330">
+            <p>将缓冲区中最老的任务放弃，然后重新尝试接纳被拒绝的任务。</p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="235">
+            <p>ThreadPoolExecutor.CallerRunsPolicy</p>
+            </td>
+            <td valign="top" width="330">
+            <p>在任务的提交方线程中运行被拒绝的任务。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+<p>当然，对于ThreadPoolExecutor而言，其工作队列满不一定就意味着新提交的任务会被拒绝。当其最大线程池大小大于其核心线程池大小 时，工作队列满的情况下，新提交的任务会用所有核心线程之外的新增线程来执行，直到工作线程数达到最大线程数时，新提交的任务会被拒绝。</p>
+
+<h3>Scheduler空闲工作线程清理</h3>
+
+<p>如果Scheduler采用多个工作线程（如采用ThreadPoolExecutor这样的线程池）来执行任务。则可能需要清理空闲的线程以节约 资源。清单3的代码就是直接使用了ThreadPoolExecutor的现有功能，在初始化其实例时通过指定其构造器的第3、4个参数（ long keepAliveTime, TimeUnit unit），告诉ThreadPoolExecutor对于核心工作线程以外的线程若其已经空闲了指定时间，则将其清理掉。</p>
+
+<h3>可复用的Active Object模式实现</h3>
+
+<p>尽管利用JDK中的现成类可以极大地简化Active Object模式的实现。但如果需要频繁地在不同场景下使用Active Object模式，则需要一套更利于复用的代码，以节约编码的时间和使代码更加易于理解。清单7展示一段基于Java动态代理的可复用的Active Object模式的Proxy参与者的实现代码。</p>
+
+<p>清单 7. 可复用的Active Object模式Proxy参与者实现</p>
+
+<pre><code>import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+public abstract class ActiveObjectProxy {
+
+    private static class DispatchInvocationHandler implements InvocationHandler {
+        private final Object delegate;
+        private final ExecutorService scheduler;
+
+        public DispatchInvocationHandler(Object delegate,
+            ExecutorService executorService) {
+            this.delegate = delegate;
+            this.scheduler = executorService;
+        }
+
+        private String makeDelegateMethodName(final Method method,
+            final Object[] arg) {
+            String name = method.getName();
+            name = "do" + Character.toUpperCase(name.charAt(0)) 
+                    + name.substring(1);
+
+            return name;
+        }
+
+        @Override
+        public Object invoke(final Object proxy, final Method method,
+            final Object[] args) throws Throwable {
+
+            Object returnValue = null;
+            final Object delegate = this.delegate;
+            final Method delegateMethod;
+
+            //如果拦截到的被调用方法是异步方法，则将其转发到相应的doXXX方法
+            if (Future.class.isAssignableFrom(method.getReturnType())) {
+                delegateMethod = delegate.getClass().getMethod(
+                    makeDelegateMethodName(method, args),
+                    method.getParameterTypes());
+
+                final ExecutorService scheduler = this.scheduler;
+
+                Callable&lt;Object&gt; methodRequest = new Callable&lt;Object&gt;() {
+                    @Override
+                    public Object call() throws Exception {
+                        Object rv = null;
+
+                        try {
+                          rv = delegateMethod.invoke(delegate, args);
+                        } catch (IllegalArgumentException e) {
+                            throw new Exception(e);
+                        } catch (IllegalAccessException e) {
+                            throw new Exception(e);
+                        } catch (InvocationTargetException e) {
+                            throw new Exception(e);
+                        }
+                        return rv;
+                    }
+                };
+                Future&lt;Object&gt; future = scheduler.submit(methodRequest);
+                returnValue = future;
+
+            } else {
+
+                //若拦截到的方法调用不是异步方法，则直接转发
+            delegateMethod = delegate.getClass()
+            .getMethod(method.getName(),method.getParameterTypes());
+
+                returnValue = delegateMethod.invoke(delegate, args);
+            }
+
+            return returnValue;
+        }
+    }
+
+    /**
+     * 生成一个实现指定接口的Active Object proxy实例。
+     * 对interf所定义的异步方法的调用会被装发到servant的相应doXXX方法。
+     * @param interf 要实现的Active Object接口
+     * @param servant Active Object的Servant参与者实例
+     * @param scheduler Active Object的Scheduler参与者实例
+     * @return Active Object的Proxy参与者实例
+     */
+    public static &lt;T&gt; T newInstance(Class&lt;T&gt; interf, Object servant,
+        ExecutorService scheduler) {
+
+        @SuppressWarnings("unchecked")
+        T f = (T) Proxy.newProxyInstance(interf.getClassLoader(),
+        new Class[] { interf }, 
+        new DispatchInvocationHandler(servant, scheduler));
+
+        return f;
+    }
+}
+</code></pre>
+
+<p>清单7的代码实现了可复用的Active Object模式的Proxy参与者ActiveObjectProxy。ActiveObjectProxy通过使用Java动态代理，动态生成指定接 口的代理对象。对该代理对象的异步方法（即返回值类型为java.util.concurrent.Future的方法）的调用会被 ActiveObjectProxy实现InvocationHandler（DispatchInvocationHandler）所拦截，并转发给 ActiveObjectProxy的newInstance方法中指定的Servant处理。</p>
+
+<p>清单8所示的代码展示了通过使用ActiveObjectProxy快速Active Object模式。</p>
+
+<p>清单 8. 基于可复用的API快速实现Active Object模式</p>
+
+<pre><code>public static void main(String[] args) throws 
+    InterruptedException, ExecutionException {
+
+    SampleActiveObject sao = ActiveObjectProxy.newInstance(
+            SampleActiveObject.class, new SampleActiveObjectImpl(),
+            Executors.newCachedThreadPool());
+    Future&lt;String&gt; ft = sao.process("Something", 1);
+    Thread.sleep(500);
+     System.out.println(ft.get());
+}
+</code></pre>
+
+<p>从清单8的代码可见，利用可复用的Active Object模式Proxy实现，应用开发人员只要指定Active Object模式对外保留的接口（对应ActiveObjectProxy.newInstance方法的第1个参数），并提供一个该接口的实现类（对应 ActiveObjectProxy.newInstance方法的第2个参数），再指定一个 java.util.concurrent.ExecutorService实例（对应ActiveObjectProxy.newInstance方法 的第3个参数）即可以实现Active Object模式。</p>
+
+<h2>总结</h2>
+
+<p>本文介绍了Active Object模式的意图及架构。并提供了一个实际的案例用于展示使用Java代码实现Active Object模式，在此基础上对该模式进行了评价并分享了在实际运用该模式时需要注意的事项。</p>
+
+<h2>参考资源</h2>
+
+<ul>
+<li>本文的源代码在线阅读：<a href="https://github.com/Viscent/JavaConcurrencyPattern/">https://github.com/Viscent/JavaConcurrencyPattern/</a></li>
+<li>维基百科Active Object模式词条：<a href="http://en.wikipedia.org/wiki/Active_object">http://en.wikipedia.org/wiki/Active_object</a></li>
+<li>Douglas C. Schmidt对Active Object模式的定义：<a href="http://www.laputan.org/pub/sag/act-obj.pdf%E3%80%82">http://www.laputan.org/pub/sag/act-obj.pdf%E3%80%82</a></li>
+<li>Schmidt, Douglas et al. Pattern-Oriented Software Architecture Volume 2: Patterns for Concurrent and Networked Objects. Volume 2. Wiley, 2000</li>
+<li>Java theory and practice: Decorating with dynamic proxies：<a href="http://www.ibm.com/developerworks/java/library/j-jtp08305/index.html">http://www.ibm.com/developerworks/java/library/j-jtp08305/index.html</a></li>
+</ul>
+
+
+<hr />
+
+<p>感谢<a href="http://www.infoq.com/cn/author/%E5%BC%A0%E9%BE%99">张龙</a>对本文的审校。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Java多线程编程模式实战指南：Active Object模式（上）]]></title>
