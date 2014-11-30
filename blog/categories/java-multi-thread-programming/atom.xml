@@ -4,7 +4,7 @@
   <title><![CDATA[Category: java multi-thread programming | Viscent's Blog]]></title>
   <link href="http://viscent.github.io/blog/categories/java-multi-thread-programming/atom.xml" rel="self"/>
   <link href="http://viscent.github.io/"/>
-  <updated>2014-11-30T19:48:41+08:00</updated>
+  <updated>2014-11-30T19:51:36+08:00</updated>
   <id>http://viscent.github.io/</id>
   <author>
     <name><![CDATA[Viscent]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[java-multithread-programming-patterns-inaction-part2]]></title>
+    <title type="html"><![CDATA[Java多线程编程模式实战指南：Active Object模式（下）]]></title>
     <link href="http://viscent.github.io/blog/2014/11/30/java-multithread-programming-patterns-inaction-part2/"/>
     <updated>2014-11-30T19:47:50+08:00</updated>
     <id>http://viscent.github.io/blog/2014/11/30/java-multithread-programming-patterns-inaction-part2</id>
