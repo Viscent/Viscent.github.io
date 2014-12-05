@@ -1,2 +1,2 @@
-My Blog: Viscent.github.io
+This repository hosts my blog: http://viscent.github.io
 =================
